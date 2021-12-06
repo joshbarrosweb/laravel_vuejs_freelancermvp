@@ -1,0 +1,132 @@
+version: '3.8'
+
+networks:
+    freelas-network:
+        driver: bridge
+
+services:
+    app:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        image: cloudsigma.com/php
+        container_name: app
+        restart: unless-stopped
+        tty: true
+        environment:
+          SERVICE_NAME: app
+          SERVICE_TAGS: dev
+        working_dir: /var/www/html/
+        volumes:
+          - ./:/var/www/html/
+          - ./.docker/php/laravel.ini:/usr/local/etc/php/conf.d/laravel.ini
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+          - freelas-network
+
+    nginx:
+        image: nginx:alpine
+        container_name: nginx
+        restart: unless-stopped
+        tty: true
+        ports:
+          - "80:80"
+          - "443:443"
+        volumes:
+          - ./:/var/www/html/
+          - ./.docker/nginx/conf.d/:/etc/nginx/conf.d/
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+          - freelas-network
+
+    postgresql:
+        image: postgres
+        container_name: postgresql
+        restart: unless-stopped
+        tty: true
+        environment:
+          POSTGRES_PASSWORD: svpW&2mbR=Dd3H4Vbg95eX%Dk@3d?cD?
+          POSTGRES_DB: freelas_laravel_test
+        volumes:
+          - ./.docker/postgresql:/var/lib/postgresql/data
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        ports:
+          - '5432:5432'
+        networks:
+          - freelas-network
+
+    redis:
+        image: redis:6.2.1-buster
+        container_name: redis
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - ./.docker/redis/data:/data
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+        - freelas-network
+
+    mailhog:
+        image: mailhog/mailhog:v1.0.1
+        container_name: mailhog
+        restart: unless-stopped
+        ports:
+            - 8025:8025
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+        - freelas-network
+
+    pgadmin:
+        image: dpage/pgadmin4
+        container_name: pgadmin
+        tty: true
+        environment:
+          - PGADMIN_DEFAULT_EMAIL=joshbarrosweb@gmail.com
+          - PGADMIN_DEFAULT_PASSWORD=12345678
+        ports:
+          - "9999:80"
+        depends_on:
+          - postgresql
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+          - freelas-network
+
+    redisinsights:
+        image: 'redislabs/redisinsight:latest'
+        container_name: redisinsights
+        restart: unless-stopped
+        ports:
+          - '8001:8001'
+        volumes:
+          - ./.docker/redisinsight:/db
+        logging:
+            driver: "json-file"
+            options:
+                max-file: "5"
+                max-size: "10m"
+        networks:
+          - freelas-network
